@@ -3,6 +3,7 @@ package org.torproject.jtor;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.io.IOException;
 import java.util.List;
 import java.util.zip.InflaterInputStream;
 
@@ -14,7 +15,7 @@ import org.torproject.jtor.directory.StatusDocument;
 import org.torproject.jtor.directory.parsing.DocumentParser;
 
 public class TorTest {
-	final static String DATA_BASE = "/Users/bob/projects/tor/directory/";
+	final static String DATA_BASE = "C:/tor/directory/";
 	final static String CERTIFICATE_FILE = DATA_BASE +"certificates";
 	final static String CONSENSUS_FILE = DATA_BASE +"consensus";
 	final static String ROUTER_FILE = DATA_BASE +"all.z";
@@ -37,11 +38,15 @@ public class TorTest {
 				//System.out.println("Adding: "+ cert);
 				directory.addCertificate(cert);
 			}
+			fis.close();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch(TorParsingException e) {
 			e.printStackTrace();
+		} catch(IOException e){
+			e.printStackTrace();
 		}
+		
 	}
 	
 	void loadConsensus() {
@@ -51,11 +56,15 @@ public class TorTest {
 			parser.parse();
 			List<StatusDocument> documents = parser.getDocuments();
 			System.out.println("Parser returned "+ documents.size() +" consensus documents.");
+			in.close();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (TorParsingException e) {
 			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
+
 	}
 	
 	void loadRouters() {

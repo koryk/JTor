@@ -284,6 +284,8 @@ public class DocumentFieldParserImpl implements DocumentFieldParser {
 	}
 	
 	private void updateCurrentSignature(String line) {
+		if (line == null)
+			return;
 		if(!isProcessingSignedEntity)
 			return;
 		if(signatureIgnoreToken != null && line.startsWith(signatureIgnoreToken))
