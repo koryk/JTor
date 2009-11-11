@@ -2,9 +2,14 @@ package org.torproject.jtor;
 
 
 import java.security.Security;
+import java.util.List;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.torproject.jtor.circuits.Circuit;
+import org.torproject.jtor.circuits.impl.CircuitManagerImpl;
+import org.torproject.jtor.circuits.impl.ConnectionManagerImpl;
 import org.torproject.jtor.directory.Directory;
+import org.torproject.jtor.directory.RouterDescriptor;
 import org.torproject.jtor.directory.impl.DirectoryImpl;
 import org.torproject.jtor.directory.impl.DocumentParserFactoryImpl;
 import org.torproject.jtor.directory.parsing.DocumentParserFactory;
@@ -12,6 +17,8 @@ import org.torproject.jtor.directory.parsing.DocumentParserFactory;
 public class Tor {
 	private final Directory directory;
 	private final DocumentParserFactory parserFactory;
+	private final ConnectionManagerImpl connectionManager;
+	private final CircuitManagerImpl circuitManager;
 	private final Logger logger;
 	
 	public Tor() {
@@ -23,6 +30,17 @@ public class Tor {
 		this.logger = logger;
 		this.directory = new DirectoryImpl(logger);
 		parserFactory = new DocumentParserFactoryImpl(logger);
+		connectionManager = new ConnectionManagerImpl();
+		circuitManager = new CircuitManagerImpl(directory, connectionManager);
+	}
+	
+	public Circuit createCircuitFromNicknames(List<String> nicknamePath) {
+		final List<RouterDescriptor> path = directory.getRouterListByNames(nicknamePath);
+		return createCircuit(path);
+	}
+	
+	public Circuit createCircuit(List<RouterDescriptor> path) {
+		return circuitManager.createCircuitFromPath(path);
 	}
 	
 	public Logger getLogger() {
@@ -37,4 +55,7 @@ public class Tor {
 		return parserFactory;
 	}
 
+	public ConnectionManagerImpl getConnectionManager() {
+		return connectionManager;
+	}
 }
