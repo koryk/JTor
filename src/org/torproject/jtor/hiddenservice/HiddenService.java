@@ -1,8 +1,10 @@
 package org.torproject.jtor.hiddenservice;
 
+import java.math.BigInteger;
 import java.security.interfaces.RSAPrivateKey;
 import java.util.ArrayList;
 
+import org.torproject.jtor.crypto.TorPrivateKey;
 import org.torproject.jtor.crypto.TorPublicKey;
 import org.torproject.jtor.data.exitpolicy.PortRange;
 
@@ -19,7 +21,7 @@ public class HiddenService {
 	private ServiceDescriptor hiddenServiceDescriptor;
 	
 	/** The private key. */
-	private RSAPrivateKey privateKey;
+	private TorPrivateKey privateKey;
 	
 	/** The public key. */
 	private TorPublicKey publicKey;
@@ -39,7 +41,10 @@ public class HiddenService {
 	 *            the service ports
 	 */
 	public HiddenService(String serviceName, PortRange servicePorts) {
-		
+		this.serviceName = serviceName;
+		this.servicePorts = servicePorts;
+		generateKeyPair();
+		generateServiceDescriptor();
 	}
 	
 	/**
@@ -50,7 +55,10 @@ public class HiddenService {
 	public TorPublicKey getPublicKey() {
 		return publicKey;
 	}
-
+	private void generateKeyPair() {
+		privateKey = TorPrivateKey.generateNewKeypair();
+		publicKey = privateKey.getPublicKey();
+	}
 	/**
 	 * Sets the public key.
 	 * 
@@ -123,7 +131,7 @@ public class HiddenService {
 	 * @param privateKey
 	 *            the new private key
 	 */
-	public void setPrivateKey(RSAPrivateKey privateKey) {
+	public void setPrivateKey(TorPrivateKey privateKey) {
 		this.privateKey = privateKey;
 	}
 
@@ -152,7 +160,10 @@ public class HiddenService {
 	 * Generate service descripter.
 	 */
 	public void generateServiceDescriptor() {
-		
+		if (publicKey != null) {
+			hiddenServiceDescriptor = new ServiceDescriptor(ServiceDescriptor.generatePermanentID(publicKey));
+			hiddenServiceDescriptor.generateDescriptorID();
+		}
 	}
 	
 	/**
@@ -177,6 +188,13 @@ public class HiddenService {
 	 */
 	public void establishIntroductionPoints() {
 		
+	}
+	public String toString() {
+		return ("Hidden Service: " + serviceName + ":" + servicePorts.toString() + " Permanent ID : " + toHex(hiddenServiceDescriptor.getPermanentID()) + " Service Descriptor : " + toHex(hiddenServiceDescriptor.getDescriptorID()) + " " + getPublicKey());
+	} 
+	private static String toHex(byte[] bytes) {
+	    BigInteger bi = new BigInteger(1, bytes);
+	    return String.format("%0" + (bytes.length << 1) + "X", bi);
 	}
 	
 }
