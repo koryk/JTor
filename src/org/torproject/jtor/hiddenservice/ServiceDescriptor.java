@@ -35,8 +35,12 @@ public class ServiceDescriptor {
 	/** The descriptor id. */
 	private byte[] descriptorID;
 	
+	/** The secret id. */
+	private byte[] secretID;
+	
 	/** The permanent key. */
 	private TorPublicKey permanentKey;  
+	
 	
 	/** The time period. */
 	private long timePeriod;
@@ -54,7 +58,7 @@ public class ServiceDescriptor {
 	 * @param permanentID
 	 *            the permanent id
 	 */
-	public ServiceDescriptor(byte[] permanentID) {
+	private ServiceDescriptor(byte[] permanentID) {
 		this.permanentID = permanentID;
 	}
 	
@@ -75,6 +79,14 @@ public class ServiceDescriptor {
 	 * Generate descriptor id.
 	 */
 	public void generateDescriptorID(){
+		generateSecretID();
+		TorMessageDigest digest = new TorMessageDigest();
+		BigInteger result = new BigInteger(secretID);
+		result = new BigInteger(digest.getDigestBytes()).or(new BigInteger(permanentID));
+		digest.update(result.toByteArray());
+		descriptorID = digest.getDigestBytes();
+	}
+	public void generateSecretID(){
 		generateTimePeriod();
 		TorMessageDigest digest = new TorMessageDigest();
 		BigInteger result = BigInteger.valueOf(timePeriod);
@@ -82,9 +94,7 @@ public class ServiceDescriptor {
 			result = result.or(new BigInteger(descriptorCookie));
 		result = result.or(BigInteger.valueOf(replica));			
 		digest.update(result.toByteArray());
-		result = new BigInteger(digest.getDigestBytes()).or(new BigInteger(permanentID));
-		digest.update(result.toByteArray());
-		descriptorID = digest.getDigestBytes();
+		secretID = digest.getDigestBytes();
 	}
 	
 	
@@ -99,19 +109,64 @@ public class ServiceDescriptor {
 	/**
 	 * 
 	 * 
-	 * Generate permanent id.
+	 * Generate Service Descriptor.
 	 * 
 	 * @param publicKey
 	 *            the public key
 	 * 
-	 * @return the byte[]
+	 * @return a new Service Descriptor
 	 */
-	public static byte[] generatePermanentID(TorPublicKey publicKey) {
+	
+	public static ServiceDescriptor generateServiceDescriptor(TorPublicKey publicKey){
 		TorMessageDigest digest = new TorMessageDigest();
 		digest.update(publicKey.getRSAPublicKey().getEncoded());
 		byte[] permanentID = new byte[PERMANENT_ID_SIZE];
-		System.arraycopy(digest.getDigestBytes(),0,permanentID,0,10);
-		return permanentID; 
+		System.arraycopy(digest.getDigestBytes(),0,permanentID,0,PERMANENT_ID_SIZE);
+		ServiceDescriptor ret = new ServiceDescriptor(permanentID);
+		ret.setPermanentKey(publicKey);
+		return ret;
+	}
+	public TorPublicKey getPermanentKey() {
+		return permanentKey;
+	}
+
+	public void setPermanentKey(TorPublicKey permanentKey) {
+		this.permanentKey = permanentKey;
+	}
+	
+	/**
+	 * generates the descriptorString before advertisement
+	 * Should these fields be in quotes like in the spec?
+	 * "rendezvous-service-descriptor" descriptor-id NL
+	 * 
+	 */
+	public void generateDescriptorString() {
+		generateDescriptorID();
+		descriptorString = "rendezvous-service-descriptor " + formatDescriptorID() + "\n";
+		descriptorString += "version " + VERSION + "\n";
+		descriptorString += "permanent-key " + permanentKey.hashCode() + "\n";
+		descriptorString += "secret-id-part " + formatSecretID() + "\n";
+		descriptorString += "publication-time " + getPublicationTime() + "\n";
+		//supported versions - not sure about this yet
+		descriptorString += "protocol-versions V2 \n";
+		descriptorString += "introduction-points\n";
+		descriptorString += "-----BEGIN MESSAGE-----";		
+		/**all the introduction points base64 encoded if descriptor cookie is present, then list is encrypted with AES in CTR mode with a random
+	       initialization vector of 128 bits that is written to
+	       the beginning of the encrypted string, and the "descriptor-cookie" as
+	       secret key of 128 bits length. **/
+		descriptorString += "-----END MESSAGE-----\n";
+		descriptorString += "signature \n";
+		//add signature string using private key.
+	}
+	/*
+	 * periodically changing identifier of 160 bits formatted as 32 base32
+	 */
+	private String formatSecretID() {
+		return "";
+	}
+	private String formatDescriptorID() {
+		return "";
 	}
 	
 	/**

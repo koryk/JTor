@@ -17,7 +17,7 @@ public class HiddenService {
 	/** The introduction points. */
 	private ArrayList<IntroductionPoint> introductionPoints = new ArrayList<IntroductionPoint>();
 	
-	/** The hidden service descripter. */
+	/** The hidden service descriptor. */
 	private ServiceDescriptor hiddenServiceDescriptor;
 	
 	/** The private key. */
@@ -47,6 +47,27 @@ public class HiddenService {
 		generateServiceDescriptor();
 	}
 	
+	/**
+	 * Instantiates a new hidden service.
+	 * 
+	 * @param serviceName
+	 *            the service name
+	 * @param servicePorts
+	 *            the service ports
+	 * @param publicKey
+	 *            the public key
+	 */
+	public HiddenService(String serviceName, PortRange servicePorts, TorPublicKey publicKey) {
+		this.serviceName = serviceName;
+		this.servicePorts = servicePorts;
+		this.publicKey = publicKey;
+		fetchPrivateKey();
+	}
+	private void fetchPrivateKey() {
+		if (publicKey == null)
+			return;
+		//lookup private key based on public key file should be encrypted
+	}
 	/**
 	 * Gets the public key.
 	 * 
@@ -136,32 +157,11 @@ public class HiddenService {
 	}
 
 	/**
-	 * Instantiates a new hidden service.
-	 * 
-	 * @param serviceName
-	 *            the service name
-	 * @param servicePorts
-	 *            the service ports
-	 * @param publicKey
-	 *            the public key
-	 */
-	public HiddenService(String serviceName, PortRange servicePorts, TorPublicKey publicKey) {
-		
-	}
-	
-	/**
-	 * Generate keys.
-	 */
-	public void generateKeys() {
-		
-	}
-	
-	/**
-	 * Generate service descripter.
+	 * Generate service descriptor.
 	 */
 	public void generateServiceDescriptor() {
 		if (publicKey != null) {
-			hiddenServiceDescriptor = new ServiceDescriptor(ServiceDescriptor.generatePermanentID(publicKey));
+			hiddenServiceDescriptor = ServiceDescriptor.generateServiceDescriptor(publicKey);
 			hiddenServiceDescriptor.generateDescriptorID();
 		}
 	}
@@ -169,8 +169,8 @@ public class HiddenService {
 	/**
 	 * Advertise descriptor.
 	 */
-	public void AdvertiseDescriptor() {
-		
+	public void advertiseDescriptor() {
+		hiddenServiceDescriptor.encodeDescriptor();
 	}
 	
 	/**
