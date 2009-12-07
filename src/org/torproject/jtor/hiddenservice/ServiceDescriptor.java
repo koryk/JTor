@@ -155,9 +155,13 @@ public class ServiceDescriptor {
 	       initialization vector of 128 bits that is written to
 	       the beginning of the encrypted string, and the "descriptor-cookie" as
 	       secret key of 128 bits length. **/
+		descriptorString += getIntroductionPointString();
 		descriptorString += "-----END MESSAGE-----\n";
 		descriptorString += "signature \n";
 		//add signature string using private key.
+	}
+	private String getIntroductionPointString() {
+		return "";
 	}
 	/*
 	 * periodically changing identifier of 160 bits formatted as 32 base32
