@@ -2,6 +2,7 @@ package org.torproject.jtor.crypto;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.io.StringWriter;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
@@ -15,6 +16,7 @@ import javax.crypto.NoSuchPaddingException;
 import org.bouncycastle.asn1.ASN1InputStream;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.openssl.PEMReader;
+import org.bouncycastle.openssl.PEMWriter;
 import org.torproject.jtor.TorException;
 import org.torproject.jtor.TorParsingException;
 import org.torproject.jtor.data.HexDigest;
@@ -27,7 +29,17 @@ public class TorPublicKey {
 		final PEMReader pemReader = new PEMReader( new StringReader(buffer));
 		return new TorPublicKey(readPEMPublicKey(pemReader));
 	}
-
+	public String toPEMFormat(){
+		final StringWriter stringWriter = new StringWriter();
+		final PEMWriter pemWriter = new PEMWriter(stringWriter);
+		try {
+		pemWriter.writeObject(key);
+		pemWriter.flush();		
+		} catch (IOException e) {
+			throw new TorException(e);			
+		}
+		return stringWriter.toString();	
+	}
 	static private RSAPublicKey readPEMPublicKey(PEMReader reader) {
 		try {
 			final Object ob = reader.readObject();
@@ -36,7 +48,7 @@ public class TorPublicKey {
 			throw new TorException(e);
 		}
 	}
-
+	
 	static private RSAPublicKey verifyObjectAsKey(Object ob) {
 		if(ob instanceof RSAPublicKey)
 			return ((RSAPublicKey) ob);
