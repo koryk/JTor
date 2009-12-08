@@ -1,13 +1,20 @@
 package org.torproject.jtor.hiddenservice;
 
 import java.math.BigInteger;
+import java.security.PrivateKey;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
+import org.bouncycastle.util.encoders.Base64Encoder;
 import org.torproject.jtor.TorException;
 import org.torproject.jtor.crypto.TorMessageDigest;
+import org.torproject.jtor.crypto.TorPrivateKey;
 import org.torproject.jtor.crypto.TorPublicKey;
+import org.torproject.jtor.directory.Router;
 
+import com.sun.org.apache.xml.internal.security.utils.Base64;
 // TODO: Auto-generated Javadoc
 /**
  * The Class ServiceDescriptor.
@@ -41,6 +48,8 @@ public class ServiceDescriptor {
 	/** The permanent key. */
 	private TorPublicKey permanentKey;  
 	
+	/** The private key */
+	private TorPrivateKey privateKey; 
 	
 	/** The time period. */
 	private long timePeriod;
@@ -51,6 +60,8 @@ public class ServiceDescriptor {
 	/** The date format. */
 	private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 	
+	/** a list of the rendezvous points */
+	private List<Router> rendPoints;
 	
 	/**
 	 * Instantiates a new service descriptor.
@@ -59,6 +70,7 @@ public class ServiceDescriptor {
 	 *            the permanent id
 	 */
 	private ServiceDescriptor(byte[] permanentID) {
+		rendPoints = new ArrayList<Router>();
 		this.permanentID = permanentID;
 	}
 	
@@ -96,14 +108,16 @@ public class ServiceDescriptor {
 		digest.update(result.toByteArray());
 		secretID = digest.getDigestBytes();
 	}
-	
+	public void setPrivateKey(TorPrivateKey privKey) {
+		this.privateKey = privKey;
+	}
 	
 	/**
 	 * Generate time period.
 	 */
 	public void generateTimePeriod() {
 		long currentTime = (new Date()).getTime();
-		timePeriod = currentTime + ((int)permanentID[0] * 86400 / 256) / 86400;
+		timePeriod = currentTime + ((int)(permanentID[0] * 86400 / 256)) / 86400;
 	}
 	
 	/**
@@ -117,12 +131,14 @@ public class ServiceDescriptor {
 	 * @return a new Service Descriptor
 	 */
 	
-	public static ServiceDescriptor generateServiceDescriptor(TorPublicKey publicKey){
+	public static ServiceDescriptor generateServiceDescriptor(TorPrivateKey privKey){
 		TorMessageDigest digest = new TorMessageDigest();
+		TorPublicKey publicKey = privKey.getPublicKey();
 		digest.update(publicKey.getRSAPublicKey().getEncoded());
 		byte[] permanentID = new byte[PERMANENT_ID_SIZE];
 		System.arraycopy(digest.getDigestBytes(),0,permanentID,0,PERMANENT_ID_SIZE);
 		ServiceDescriptor ret = new ServiceDescriptor(permanentID);
+		ret.setPrivateKey(privKey);
 		ret.setPermanentKey(publicKey);
 		return ret;
 	}
@@ -136,41 +152,56 @@ public class ServiceDescriptor {
 	
 	/**
 	 * generates the descriptorString before advertisement
-	 * Should these fields be in quotes like in the spec?
-	 * "rendezvous-service-descriptor" descriptor-id NL
 	 * 
 	 */
 	public void generateDescriptorString() {
-		generateDescriptorID();
+		generateDescriptorID();	
 		descriptorString = "rendezvous-service-descriptor " + formatDescriptorID() + "\n";
 		descriptorString += "version " + VERSION + "\n";
-		descriptorString += "permanent-key " + permanentKey.hashCode() + "\n";
+		descriptorString += "permanent-key \n" + permanentKey.toPEMFormat() + "\n";
 		descriptorString += "secret-id-part " + formatSecretID() + "\n";
 		descriptorString += "publication-time " + getPublicationTime() + "\n";
 		//supported versions - not sure about this yet
 		descriptorString += "protocol-versions V2 \n";
 		descriptorString += "introduction-points\n";
-		descriptorString += "-----BEGIN MESSAGE-----";		
+		descriptorString += "-----BEGIN MESSAGE-----\n";		
 		/**all the introduction points base64 encoded if descriptor cookie is present, then list is encrypted with AES in CTR mode with a random
 	       initialization vector of 128 bits that is written to
 	       the beginning of the encrypted string, and the "descriptor-cookie" as
 	       secret key of 128 bits length. **/
-		descriptorString += getIntroductionPointString();
-		descriptorString += "-----END MESSAGE-----\n";
+		byte[] introPoints = null;
+		if (!hasDescriptorCookie())
+			introPoints = getIntroductionPointString().getBytes();
+		else //encrypt it
+			introPoints = new byte[1];
+		descriptorString += Base64.encode(introPoints);
+		descriptorString += "\n-----END MESSAGE-----\n";
 		descriptorString += "signature \n";
 		//add signature string using private key.
 	}
 	private String getIntroductionPointString() {
-		return "";
+		String retVal = "";
+		for (Router r : rendPoints){
+		 retVal += "introduction-point " + r.getIdentityHash() +"\n";
+		 retVal += "ip-address " + r.getAddress().toString() + "\n";
+		 retVal += "onion-port " + r.getOnionPort() + "\n";
+		 retVal += "onion-key \n" + r.getOnionKey().toPEMFormat() + "\n";
+		 retVal += "service-key \n" + getPermanentKey().toPEMFormat() + "\n";
+		 //retVal += "introduction-authentication " + 
+		}
+		return retVal;
+	}
+	public void addRendPoint(Router r) {
+		rendPoints.add(r);
 	}
 	/*
 	 * periodically changing identifier of 160 bits formatted as 32 base32
 	 */
 	private String formatSecretID() {
-		return "";
+		return Base32.binary2ascii(secretID, 160);
 	}
 	private String formatDescriptorID() {
-		return "";
+		return Base32.binary2ascii(descriptorID, 160);
 	}
 	
 	/**
