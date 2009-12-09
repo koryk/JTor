@@ -1,12 +1,19 @@
 package org.torproject.jtor.hiddenservice;
 
+import java.io.BufferedWriter;
+import java.io.OutputStreamWriter;
 import java.math.BigInteger;
+import java.net.InetAddress;
+import java.net.Socket;
 import java.security.interfaces.RSAPrivateKey;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.torproject.jtor.crypto.TorPrivateKey;
 import org.torproject.jtor.crypto.TorPublicKey;
 import org.torproject.jtor.data.exitpolicy.PortRange;
+import org.torproject.jtor.directory.Directory;
+import org.torproject.jtor.directory.DirectoryServer;
 import org.torproject.jtor.directory.Router;
 
 // TODO: Auto-generated Javadoc
@@ -33,6 +40,8 @@ public class HiddenService {
 	/** The service ports. */
 	private PortRange servicePorts;
 	
+	private Directory directory;
+	
 	/**
 	 * Instantiates a new hidden service.
 	 * 
@@ -41,9 +50,10 @@ public class HiddenService {
 	 * @param servicePorts
 	 *            the service ports
 	 */
-	public HiddenService(String serviceName, PortRange servicePorts) {
+	public HiddenService(String serviceName, PortRange servicePorts, Directory directory) {
 		this.serviceName = serviceName;
 		this.servicePorts = servicePorts;
+		this.directory = directory;
 		generateKeyPair();
 		generateServiceDescriptor();
 	}
@@ -170,8 +180,31 @@ public class HiddenService {
 	/**
 	 * Advertise descriptor.
 	 */
-	public void advertiseDescriptor() {
-		hiddenServiceDescriptor.encodeDescriptor();
+	public void advertiseDescriptor() {	
+		
+		String descriptor = hiddenServiceDescriptor.getDescriptorString();
+		final String path = "/tor/rendezvous/publish";
+		ArrayList<DirectoryServer> authorities = new ArrayList<DirectoryServer>(directory.getDirectoryAuthorities());
+		
+		for (DirectoryServer server : authorities) {
+		
+	        // Create a socket to the host
+	        int port = 80;
+	        InetAddress addr = server.getAddress().toInetAddress();
+	        try {
+	        Socket socket = new Socket(addr, port);
+	    
+	        
+	        BufferedWriter wr = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF8"));
+	        wr.write("POST "+path+" HTTP/1.1\r\n");
+	        
+	        // Send data
+	        wr.write(descriptor);
+	        wr.flush();
+	        } catch (Exception e) {
+	        	System.out.println("advertised descriptor");//log post error
+	        }
+		}
 	}
 	
 	/**
@@ -192,7 +225,7 @@ public class HiddenService {
 	}
 	public String toString() {
 		hiddenServiceDescriptor.generateDescriptorString();
-		return ("Hidden Service: " + serviceName + ":" + servicePorts.toString() + " Permanent ID : " + toHex(hiddenServiceDescriptor.getPermanentID()) + " Service Descriptor : " + hiddenServiceDescriptor.getDescriptorString() + " " + getPublicKey());
+		return ("Hidden Service: " + serviceName + ":" + servicePorts.toString() + " Permanent ID : " + toHex(hiddenServiceDescriptor.getPermanentID()) + " Service Descriptor : \n" + hiddenServiceDescriptor.getDescriptorString() + " " + getPublicKey());
 	} 
 	private static String toHex(byte[] bytes) {
 	    BigInteger bi = new BigInteger(1, bytes);

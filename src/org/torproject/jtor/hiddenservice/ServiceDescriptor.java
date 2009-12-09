@@ -1,11 +1,19 @@
 package org.torproject.jtor.hiddenservice;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.math.BigInteger;
 import java.security.PrivateKey;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Random;
+
+import javax.crypto.Cipher;
+import javax.crypto.CipherInputStream;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 
 import org.bouncycastle.util.encoders.Base64Encoder;
 import org.torproject.jtor.TorException;
@@ -154,7 +162,7 @@ public class ServiceDescriptor {
 	 * generates the descriptorString before advertisement
 	 * 
 	 */
-	public void generateDescriptorString() {
+	public void generateDescriptorString() throws TorException{
 		generateDescriptorID();	
 		descriptorString = "rendezvous-service-descriptor " + formatDescriptorID() + "\n";
 		descriptorString += "version " + VERSION + "\n";
@@ -172,12 +180,41 @@ public class ServiceDescriptor {
 		byte[] introPoints = null;
 		if (!hasDescriptorCookie())
 			introPoints = getIntroductionPointString().getBytes();
-		else //encrypt it
-			introPoints = new byte[1];
+		else {//encrypt it
+			byte[] ivBytes = getRandomKey();
+			byte[] keyBytes = getDescriptorCookie();
+			IvParameterSpec ivSpec = new IvParameterSpec(ivBytes);
+			SecretKeySpec key = new SecretKeySpec(keyBytes, "AES");
+			try{
+				Cipher cipher = Cipher.getInstance("AES/CTR/NoPadding", "BC");
+				cipher.init(Cipher.ENCRYPT_MODE, key, ivSpec);
+			    ByteArrayInputStream bIn = new ByteArrayInputStream(getIntroductionPointString().getBytes());
+			    CipherInputStream cIn = new CipherInputStream(bIn, cipher);
+			    ByteArrayOutputStream bOut = new ByteArrayOutputStream();
+			    bOut.write(ivBytes);
+			    int ch;
+			    while ((ch = cIn.read()) >= 0) {
+			      bOut.write(ch);
+			    }
+			    
+			    introPoints  = bOut.toByteArray();
+			} catch (Exception e) {
+				throw new TorException(e);
+			}
+	
+			//getIntroductionString.getBytes();
+			
+		}
 		descriptorString += Base64.encode(introPoints);
 		descriptorString += "\n-----END MESSAGE-----\n";
 		descriptorString += "signature \n";
 		//add signature string using private key.
+	}
+	public byte[] getRandomKey() {
+		byte[] retKey = new byte[16];
+		Random rndGen = new Random();
+		rndGen.nextBytes(retKey);
+		return retKey;
 	}
 	private String getIntroductionPointString() {
 		String retVal = "";
