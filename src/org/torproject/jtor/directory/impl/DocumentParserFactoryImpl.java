@@ -3,22 +3,23 @@ package org.torproject.jtor.directory.impl;
 import java.io.InputStream;
 import java.io.Reader;
 
-import org.torproject.jtor.Logger;
 import org.torproject.jtor.directory.KeyCertificate;
 import org.torproject.jtor.directory.RouterDescriptor;
-import org.torproject.jtor.directory.StatusDocument;
+import org.torproject.jtor.directory.ConsensusDocument;
 import org.torproject.jtor.directory.impl.certificate.KeyCertificateParser;
+import org.torproject.jtor.directory.impl.consensus.ConsensusDocumentParser;
 import org.torproject.jtor.directory.impl.router.RouterDescriptorParser;
-import org.torproject.jtor.directory.impl.status.StatusDocumentParser;
 import org.torproject.jtor.directory.parsing.DocumentFieldParser;
 import org.torproject.jtor.directory.parsing.DocumentParser;
 import org.torproject.jtor.directory.parsing.DocumentParserFactory;
+import org.torproject.jtor.logging.LogManager;
+import org.torproject.jtor.logging.Logger;
 
 public class DocumentParserFactoryImpl implements DocumentParserFactory {
 	private final Logger logger;
 	
-	public DocumentParserFactoryImpl(Logger logger) {
-		this.logger = logger;
+	public DocumentParserFactoryImpl(LogManager logManager) {
+		this.logger = logManager.getLogger("document-parsing");
 	}
 
 	public DocumentParser<KeyCertificate> createKeyCertificateParser(InputStream input) {
@@ -37,12 +38,12 @@ public class DocumentParserFactoryImpl implements DocumentParserFactory {
 		return new RouterDescriptorParser(createDocumentFieldParser(reader));
 	}
 
-	public DocumentParser<StatusDocument> createStatusDocumentParser(InputStream input) {
-		return new StatusDocumentParser(createDocumentFieldParser(input));
+	public DocumentParser<ConsensusDocument> createConsensusDocumentParser(InputStream input) {
+		return new ConsensusDocumentParser(createDocumentFieldParser(input));
 	}
 
-	public DocumentParser<StatusDocument> createStatusDocumentParser(Reader reader) {
-		return new StatusDocumentParser(createDocumentFieldParser(reader));
+	public DocumentParser<ConsensusDocument> createConsensusDocumentParser(Reader reader) {
+		return new ConsensusDocumentParser(createDocumentFieldParser(reader));
 	}
 	
 	public DocumentFieldParser createDocumentFieldParser(InputStream input) {

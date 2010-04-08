@@ -5,7 +5,7 @@ import java.io.Reader;
 
 import org.torproject.jtor.directory.KeyCertificate;
 import org.torproject.jtor.directory.RouterDescriptor;
-import org.torproject.jtor.directory.StatusDocument;
+import org.torproject.jtor.directory.ConsensusDocument;
 
 public interface DocumentParserFactory {
 	DocumentParser<RouterDescriptor> createRouterDescriptorParser(InputStream input);
@@ -14,12 +14,9 @@ public interface DocumentParserFactory {
 	DocumentParser<KeyCertificate> createKeyCertificateParser(InputStream input);
 	DocumentParser<KeyCertificate> createKeyCertificateParser(Reader reader);
 
+	DocumentParser<ConsensusDocument> createConsensusDocumentParser(InputStream input);
+	DocumentParser<ConsensusDocument> createConsensusDocumentParser(Reader reader);
 
-	DocumentParser<StatusDocument> createStatusDocumentParser(InputStream input);
-	DocumentParser<StatusDocument> createStatusDocumentParser(Reader reader);
-	
 	DocumentFieldParser createDocumentFieldParser(InputStream input);
 	DocumentFieldParser createDocumentFieldParser(Reader reader);
-
-
 }

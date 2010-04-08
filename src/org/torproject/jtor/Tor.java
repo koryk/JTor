@@ -1,78 +1,109 @@
 package org.torproject.jtor;
 
-
-import java.security.Security;
-import java.util.List;
-
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.torproject.jtor.circuits.Circuit;
+import org.torproject.jtor.circuits.CircuitManager;
 import org.torproject.jtor.circuits.impl.CircuitManagerImpl;
 import org.torproject.jtor.circuits.impl.ConnectionManagerImpl;
 import org.torproject.jtor.config.impl.TorConfigImpl;
 import org.torproject.jtor.directory.Directory;
-import org.torproject.jtor.directory.Router;
 import org.torproject.jtor.directory.impl.DirectoryImpl;
-import org.torproject.jtor.directory.impl.DocumentParserFactoryImpl;
 import org.torproject.jtor.directory.impl.NetworkStatusManager;
-import org.torproject.jtor.directory.parsing.DocumentParserFactory;
+import org.torproject.jtor.logging.LogManager;
+import org.torproject.jtor.logging.impl.LogManagerImpl;
+import org.torproject.jtor.socks.SocksPortListener;
+import org.torproject.jtor.socks.impl.SocksPortListenerImpl;
 
+/**
+ * The <code>Tor</code> class is a collection of static methods for instantiating
+ * various subsystem modules.
+ */
 public class Tor {
-	private final Directory directory;
-	private final DocumentParserFactory parserFactory;
-	private final ConnectionManagerImpl connectionManager;
-	private final CircuitManagerImpl circuitManager;
-	private final Logger logger;
-	private final TorConfig config;
-	private final NetworkStatusManager statusManager;
+	private final static String version = "JTor 0.0.0";
 	
-	public Tor() {
-		this(new ConsoleLogger());
+	/**
+	 * Return a string describing the version of this software.
+	 * 
+	 * @return A string representation of the software version.
+	 */
+	public static String getVersion() {
+		return version;
 	}
 	
-	public Tor(Logger logger) {
-		Security.addProvider(new BouncyCastleProvider());
-		this.logger = logger;
-		this.config = new TorConfigImpl();
-		this.directory = new DirectoryImpl(logger, config);
-		parserFactory = new DocumentParserFactoryImpl(logger);
-		connectionManager = new ConnectionManagerImpl();
-		circuitManager = new CircuitManagerImpl(directory, connectionManager);
-		statusManager = new NetworkStatusManager(directory, logger);
-	}
-	
-	
-	public void start() {
-		directory.loadFromStore();
-		statusManager.startDownloadingDocuments();
-	}
-	
-	public Circuit createCircuitFromNicknames(List<String> nicknamePath) {
-		final List<Router> path = directory.getRouterListByNames(nicknamePath);
-		return createCircuit(path);
-	}
-	
-	public Circuit createCircuit(List<Router> path) {
-		return circuitManager.createCircuitFromPath(path);
-	}
-	
-	public Logger getLogger() {
-		return logger;
-	}
-	
-	public Directory getDirectory() {
-		return directory;
-	}
-	
-	public TorConfig getConfig() {
-		return config;
-	}
-	
-	public DocumentParserFactory getDocumentParserFactory() {
-		return parserFactory;
+	/**
+	 * Create and return a new <code>LogManager</code> instance.
+	 * 
+	 * @return A new <code>LogManager</code>
+	 * @see LogManager
+	 */
+	static public LogManager createLogManager() {
+		return new LogManagerImpl();
 	}
 
-	public ConnectionManagerImpl getConnectionManager() {
-		return connectionManager;
+	/**
+	 * Create and return a new <code>TorConfig</code> instance.
+	 * 
+	 * @param logManager This is a required dependency.  You must create a <code>LogManager</code>
+	 *                   before calling this method to create a <code>TorConfig</code>
+	 * @return A new <code>TorConfig</code> instance.
+	 * @see TorConfig
+	 */
+	static public TorConfig createConfig(LogManager logManager) {
+		return new TorConfigImpl(logManager);
 	}
-	
+
+	/**
+	 * Create and return a new <code>Directory</code> instance.
+	 * 
+	 * @param logManager This is a required dependency.  You must create a <code>LogManager</code> 
+	 *                   before creating a <code>Directory</code>. 
+	 * @param config This is a required dependency. You must create a <code>TorConfig</code> before
+	 *               calling this method to create a <code>Directory</code>
+	 * @return A new <code>Directory</code> instance.
+	 * @see Directory
+	 */
+	static public Directory createDirectory(LogManager logManager, TorConfig config) {
+		return new DirectoryImpl(logManager, config);
+	}
+
+	/**
+	 * Create and return a new <code>CircuitManager</code> instance.
+	 * 
+	 * @param directory This is a required dependency.  You must create a <code>Directory</code> 
+	 *                  before calling this method to create a <code>CircuitManager</code>.
+	 * @param logManager This is a required dependency.  You must create a <code>LogManager</code>
+	 *                   before calling this method to create a <code>CircuitManager</code>.
+	 * @return A new <code>CircuitManager</code> instance.
+	 * @see CircuitManager
+	 */
+	static public CircuitManager createCircuitManager(Directory directory, LogManager logManager) {
+		final ConnectionManagerImpl connectionManager = new ConnectionManagerImpl(logManager);
+		return new CircuitManagerImpl(directory, connectionManager, logManager);
+	}
+
+	/**
+	 * Create and return a new <code>SocksPortListener</code> instance.
+	 * 
+	 * @param logManager This is a required dependency.  You must create a <code>LogManager</code>
+	 *                   before calling this method to create a <code>SocksPortListener</code>.
+	 * @param circuitManager This is a required dependency.  You must create a <code>CircuitManager</code>
+	 *                       before calling this method to create a <code>SocksPortListener</code>.
+	 * @return A new <code>SocksPortListener</code> instance.
+	 * @see SocksPortListener
+	 */
+	static public SocksPortListener createSocksPortListener(LogManager logManager, CircuitManager circuitManager) {
+		return new SocksPortListenerImpl(logManager, circuitManager);
+	}
+
+	/**
+	 * Create and return a new <code>NetworkStatusManager</code> instance.
+	 * 
+	 * @param directory This is a required dependency.  You must create a <code>Directory</code>
+	 *                  before calling this method to create a <code>NetworkStatusManager</code>
+	 * @param logManager This is a required dependency.  You must create a <code>LogManager</code>
+	 *                   before calling this method to create a <code>NetworkStatusManager</code>.
+	 * @return A new <code>NetworkStatusManager</code> instance.
+	 * @see NetworkStatusManager
+	 */
+	static public NetworkStatusManager createNetworkStatusManager(Directory directory, LogManager logManager) {
+		return new NetworkStatusManager(directory, logManager);
+	}
 }

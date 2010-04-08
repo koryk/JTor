@@ -40,7 +40,7 @@ public class TorStreamCipher {
 		encrypt(data, 0, data.length);
 	}
 	
-	public void encrypt(byte[] data, int offset, int length) {
+	public synchronized void encrypt(byte[] data, int offset, int length) {
 		for(int i = 0; i < length; i++) 
 			data[i + offset] ^= nextKeystreamByte();
 	}
@@ -89,7 +89,7 @@ public class TorStreamCipher {
 			cipher.doFinal(counter, 0, BLOCK_SIZE, counterOut, 0);
 		} catch (GeneralSecurityException e) {
 			throw new TorException(e);
-		} 
+		}
 	}
 	
 	private void incrementCounter() {
