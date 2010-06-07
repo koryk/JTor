@@ -15,24 +15,25 @@ import javax.crypto.CipherInputStream;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.bouncycastle.util.encoders.Base64Encoder;
 import org.torproject.jtor.TorException;
 import org.torproject.jtor.crypto.TorMessageDigest;
 import org.torproject.jtor.crypto.TorPrivateKey;
 import org.torproject.jtor.crypto.TorPublicKey;
+import org.torproject.jtor.data.HexDigest;
 import org.torproject.jtor.directory.Router;
 
 import com.sun.org.apache.xml.internal.security.utils.Base64;
-// TODO: Auto-generated Javadoc
 /**
- * The Class ServiceDescriptor.
+ *  Author: Kory Kirk
+ *  ServiceDescriptor is the class that represents the V2 Service Descriptor used for publishing 
+ *  Hidden Services.
  */
 public class ServiceDescriptor {
 	
 	/** The Constant PERMANENT_ID_SIZE. */
 	private final static int PERMANENT_ID_SIZE = 10;
 	
-	/** The Constant VERSION. */
+	/** The descriptor VERSION. */
 	private final static String VERSION = "2";
 	
 	/** The descriptor data. */
@@ -44,7 +45,7 @@ public class ServiceDescriptor {
 	/** The permanent id. */
 	private byte[] permanentID;
 	
-	/** The descriptor cookie. */
+	/** The optional descriptor cookie. (for client authentication) */
 	private byte[] descriptorCookie;
 	
 	/** The descriptor id. */
@@ -142,9 +143,11 @@ public class ServiceDescriptor {
 	public static ServiceDescriptor generateServiceDescriptor(TorPrivateKey privKey){
 		TorMessageDigest digest = new TorMessageDigest();
 		TorPublicKey publicKey = privKey.getPublicKey();
-		digest.update(publicKey.getRSAPublicKey().getEncoded());
+		
+		
+		System.out.println();
 		byte[] permanentID = new byte[PERMANENT_ID_SIZE];
-		System.arraycopy(digest.getDigestBytes(),0,permanentID,0,PERMANENT_ID_SIZE);
+		System.arraycopy(digest.getRawBytes(),0,permanentID,0,PERMANENT_ID_SIZE);
 		ServiceDescriptor ret = new ServiceDescriptor(permanentID);
 		ret.setPrivateKey(privKey);
 		ret.setPermanentKey(publicKey);
@@ -240,7 +243,9 @@ public class ServiceDescriptor {
 	private String formatDescriptorID() {
 		return Base32.binary2ascii(descriptorID, 160);
 	}
-	
+	public String getOnionAddress() {
+		return Base32.binary2ascii(permanentID, 80);
+	}
 	/**
 	 * Encode descriptor.
 	 */

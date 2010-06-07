@@ -1,12 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="src" path="src"/>
-<<<<<<< HEAD
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry kind="lib" path="C:/Documents and Settings/Administrator/Desktop/JTor/bcprov-jdk16-143.jar"/>
-=======
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/J2SE-1.5"/>
-	<classpathentry kind="lib" path="lib/bcprov-jdk15-143.jar"/>
->>>>>>> 22e6d21ae41977241a41b61257e03d13c94e0a27
+	<classpathentry kind="src" path=""/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
