@@ -15,10 +15,15 @@ import javax.crypto.CipherInputStream;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.bouncycastle.crypto.AsymmetricBlockCipher;
+import org.bouncycastle.crypto.encodings.PKCS1Encoding;
+import org.bouncycastle.crypto.engines.RSAEngine;
+import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.torproject.jtor.TorException;
 import org.torproject.jtor.crypto.TorMessageDigest;
 import org.torproject.jtor.crypto.TorPrivateKey;
 import org.torproject.jtor.crypto.TorPublicKey;
+import org.torproject.jtor.data.Base32;
 import org.torproject.jtor.data.HexDigest;
 import org.torproject.jtor.directory.Router;
 
@@ -141,12 +146,9 @@ public class ServiceDescriptor {
 	 */
 	
 	public static ServiceDescriptor generateServiceDescriptor(TorPrivateKey privKey){
-		TorMessageDigest digest = new TorMessageDigest();
-		TorPublicKey publicKey = privKey.getPublicKey();
-		digest.update(publicKey.getRSAPublicKey().getModulus().toByteArray());
-		System.out.println(publicKey.getRSAPublicKey().getModulus().toByteArray());
+		TorPublicKey publicKey = privKey.getPublicKey();		
 		byte[] permanentID = new byte[PERMANENT_ID_SIZE];
-		permanentID = digest.getDigestBytes();
+		System.arraycopy(publicKey.getFingerprint().getRawBytes(), 0, permanentID, 0, 10);
 		ServiceDescriptor ret = new ServiceDescriptor(permanentID);
 		ret.setPrivateKey(privKey);
 		ret.setPermanentKey(publicKey);
@@ -236,13 +238,13 @@ public class ServiceDescriptor {
 	 * periodically changing identifier of 160 bits formatted as 32 base32
 	 */
 	private String formatSecretID() {
-		return Base32.encode(secretID);
+		return Base32.base32Encode(secretID);
 	}
 	private String formatDescriptorID() {
-		return Base32.encode(descriptorID);
+		return Base32.base32Encode(descriptorID);
 	}
 	public String getOnionAddress() {
-		return Base32.encode(permanentID);
+		return Base32.base32Encode(permanentID);
 	}
 	/**
 	 * Encode descriptor.

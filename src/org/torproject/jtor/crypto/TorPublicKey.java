@@ -2,6 +2,7 @@ package org.torproject.jtor.crypto;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.io.StringWriter;
 import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
@@ -16,6 +17,7 @@ import javax.crypto.NoSuchPaddingException;
 import org.bouncycastle.asn1.ASN1InputStream;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.openssl.PEMReader;
+import org.bouncycastle.openssl.PEMWriter;
 import org.torproject.jtor.TorException;
 import org.torproject.jtor.TorParsingException;
 import org.torproject.jtor.data.HexDigest;
@@ -66,7 +68,18 @@ public class TorPublicKey {
 			throw new TorException(e);
 		}
 	}
-
+	public String toPEMFormat(){
+		final StringWriter stringWriter = new StringWriter();
+		final PEMWriter pemWriter = new PEMWriter(stringWriter);
+		try {
+		pemWriter.writeObject(key);
+		pemWriter.flush();		
+		} catch (IOException e) {
+			throw new TorException(e);			
+		}
+		return stringWriter.toString();	
+	}
+	
 	public HexDigest getFingerprint() {
 		if(keyFingerprint == null)
 			keyFingerprint = HexDigest.createDigestForData(toASN1Raw());

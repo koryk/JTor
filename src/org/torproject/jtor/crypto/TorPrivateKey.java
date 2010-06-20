@@ -2,6 +2,7 @@ package org.torproject.jtor.crypto;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.io.StringWriter;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
@@ -13,6 +14,7 @@ import java.security.interfaces.RSAPublicKey;
 import org.bouncycastle.asn1.ASN1InputStream;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.openssl.PEMReader;
+import org.bouncycastle.openssl.PEMWriter;
 import org.torproject.jtor.TorException;
 import org.torproject.jtor.TorParsingException;
 import org.torproject.jtor.data.HexDigest;
@@ -35,7 +37,17 @@ public class TorPrivateKey {
 			throw new TorException(e);
 		}
 	}
-	
+	public String toPEMFormat(){
+		final StringWriter stringWriter = new StringWriter();
+		final PEMWriter pemWriter = new PEMWriter(stringWriter);
+		try {
+		pemWriter.writeObject(privateKey);
+		pemWriter.flush();		
+		} catch (IOException e) {
+			throw new TorException(e);			
+		}
+		return stringWriter.toString();	
+	}	
 	static public TorPrivateKey createFromPEMBuffer(String buffer) {
 		final PEMReader pemReader = new PEMReader(new StringReader(buffer));
 		final KeyPair kp = readPEMKeyPair(pemReader);
