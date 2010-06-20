@@ -95,7 +95,7 @@ public class TorMessageDigest {
 	}
 
 	/**
-	 * Convert the String <code>input</code> into an array of bytes using the ISO-8859-1 encoding
+	 * Convert the String <code>in put</code> into an array of bytes using the ISO-8859-1 encoding
 	 * and add these bytes to the current digest calculation.
 	 * 
 	 * @param input A string to process.

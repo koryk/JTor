@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="src" path=""/>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="lib" path="C:/Program Files/Java/jre1.6.0_05/lib/rt.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files/Java/jre1.6.0_05/lib/jce.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files/Java/jre1.6.0_05/lib/jsse.jar"/>
+	<classpathentry kind="lib" path="C:/Documents and Settings/Administrator/My Documents/Dev/JTor/lib/bcprov-jdk15-143.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/3"/>
+	<classpathentry kind="lib" path="C:/Documents and Settings/Administrator/My Documents/Dev/JTor/lib/junit-4.8.2.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

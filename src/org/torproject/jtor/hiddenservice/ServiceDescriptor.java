@@ -143,11 +143,10 @@ public class ServiceDescriptor {
 	public static ServiceDescriptor generateServiceDescriptor(TorPrivateKey privKey){
 		TorMessageDigest digest = new TorMessageDigest();
 		TorPublicKey publicKey = privKey.getPublicKey();
-		
-		
-		System.out.println();
+		digest.update(publicKey.getRSAPublicKey().getModulus().toByteArray());
+		System.out.println(publicKey.getRSAPublicKey().getModulus().toByteArray());
 		byte[] permanentID = new byte[PERMANENT_ID_SIZE];
-		System.arraycopy(digest.getRawBytes(),0,permanentID,0,PERMANENT_ID_SIZE);
+		permanentID = digest.getDigestBytes();
 		ServiceDescriptor ret = new ServiceDescriptor(permanentID);
 		ret.setPrivateKey(privKey);
 		ret.setPermanentKey(publicKey);
@@ -205,7 +204,6 @@ public class ServiceDescriptor {
 				throw new TorException(e);
 			}
 	
-			//getIntroductionString.getBytes();
 			
 		}
 		descriptorString += Base64.encode(introPoints);
@@ -238,13 +236,13 @@ public class ServiceDescriptor {
 	 * periodically changing identifier of 160 bits formatted as 32 base32
 	 */
 	private String formatSecretID() {
-		return Base32.binary2ascii(secretID, 160);
+		return Base32.encode(secretID);
 	}
 	private String formatDescriptorID() {
-		return Base32.binary2ascii(descriptorID, 160);
+		return Base32.encode(descriptorID);
 	}
 	public String getOnionAddress() {
-		return Base32.binary2ascii(permanentID, 80);
+		return Base32.encode(permanentID);
 	}
 	/**
 	 * Encode descriptor.
