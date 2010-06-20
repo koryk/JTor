@@ -148,7 +148,7 @@ public class ServiceDescriptor {
 	public static ServiceDescriptor generateServiceDescriptor(TorPrivateKey privKey){
 		TorPublicKey publicKey = privKey.getPublicKey();		
 		byte[] permanentID = new byte[PERMANENT_ID_SIZE];
-		System.arraycopy(publicKey.getFingerprint().getRawBytes(), 0, permanentID, 0, 10);
+		System.arraycopy(publicKey.getFingerprint().getRawBytes(), 0, permanentID, 0, PERMANENT_ID_SIZE);
 		ServiceDescriptor ret = new ServiceDescriptor(permanentID);
 		ret.setPrivateKey(privKey);
 		ret.setPermanentKey(publicKey);
