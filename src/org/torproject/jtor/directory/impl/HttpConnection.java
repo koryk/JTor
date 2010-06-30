@@ -57,6 +57,25 @@ public class HttpConnection {
 			throw new TorException("IO exception sending GET request", e);
 		}
 	}
+	void sendPostRequest(String request, byte[] data){
+		final StringBuilder sb = new StringBuilder();
+		sb.append("POST ");
+		sb.append(request);
+		sb.append(" HTTP/1.0\r\n");
+		sb.append("Host: "+ host +"\r\n");
+		if(ifModifiedSince != null) {
+			
+		}
+		sb.append("\r\n");
+		
+		try {
+			writer.write(sb.toString());
+			writer.write(new String(data));
+			writer.flush();
+		} catch (IOException e) {
+			throw new TorException("IO exception sending POST request", e);
+		}
+	}
 	
 	void readResponse() {
 		readStatusLine();
