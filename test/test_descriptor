@@ -1,0 +1,23 @@
+rendezvous-service-descriptor 6f2v6dkbde2gggc724tygb3ehvlumfp3
+version 2
+permanent-key 
+-----BEGIN PUBLIC KEY-----
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDRiukvIG8eKFuB8eamrMBv16lT
+bXFEQyceWaqRgrPjbzb/+wXTQCSHWZxg8GhkB3aioPcyBpNDPG8kO3Hz52CDwxTX
+8GGesdfsFNqCfVK1KoY6ryoKrj7SGoTlmbyQcqzUn0PIW1zFUyufq0NV6SCWMcdD
+K0evILRaxoG3lPaUYQIDAQAB
+-----END PUBLIC KEY-----
+
+secret-id-part pmqpgqh4trq7k7hlrp6po53rrmx2o6xl
+publication-time 2010-08-16 02:31:35
+protocol-versions V2 
+introduction-points
+-----BEGIN MESSAGE-----
+
+-----END MESSAGE-----
+signature 
+-----BEGIN SIGNATURE-----
+bKqv2yvwM7Ah4DsWkN1Ot/M2Plo4h78a8k6W6t6doc7dG+JB8BafzJ4pQitkl1H5qlppiTHN6BWE
+TGrZRn4RmHvH2zjuh6y7nu9gggPn35lTYIAaWgNA8j7M00xpRLEL5FP9np/kA7l2iQAyNIFRn1S2
+eQPEc8W8o71hluoTK/4=
+-----END SIGNATURE-----
