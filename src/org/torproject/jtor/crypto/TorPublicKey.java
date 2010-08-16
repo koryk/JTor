@@ -21,6 +21,9 @@ import org.bouncycastle.openssl.PEMWriter;
 import org.torproject.jtor.TorException;
 import org.torproject.jtor.TorParsingException;
 import org.torproject.jtor.data.HexDigest;
+import org.torproject.jtor.hiddenservice.test.TestHiddenService;
+
+import com.sun.org.apache.xml.internal.security.utils.Base64;
 
 /**
  * This class wraps the RSA public keys used in the Tor protocol.
@@ -58,7 +61,7 @@ public class TorPublicKey {
 		this.key = key;
 	}
 
-	private byte[] toASN1Raw() {
+	public byte[] toASN1Raw() {
 		byte[] encoded = key.getEncoded();
 		ASN1InputStream asn1input = new ASN1InputStream(encoded);
 		try {
@@ -96,7 +99,7 @@ public class TorPublicKey {
 
 	public boolean verifySignatureFromDigestBytes(TorSignature signature, byte[] digestBytes) {
 		final Cipher cipher = createCipherInstance();
-		try {
+		try {			
 			byte[] decrypted = cipher.doFinal(signature.getSignatureBytes());
 			return constantTimeArrayEquals(decrypted, digestBytes);
 		} catch (IllegalBlockSizeException e) {
