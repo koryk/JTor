@@ -4,6 +4,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -23,13 +24,16 @@ import org.torproject.jtor.directory.Router;
 import org.torproject.jtor.directory.RouterDescriptor;
 import org.torproject.jtor.directory.RouterStatus;
 import org.torproject.jtor.directory.impl.consensus.DirectorySignature;
+import org.torproject.jtor.directory.impl.consensus.RouterStatusImpl;
 import org.torproject.jtor.events.Event;
 import org.torproject.jtor.events.EventHandler;
 import org.torproject.jtor.events.EventManager;
+import org.torproject.jtor.hiddenservice.HiddenServiceDescriptor;
 import org.torproject.jtor.logging.LogManager;
 import org.torproject.jtor.logging.Logger;
 
 public class DirectoryImpl implements Directory {
+	private static final String HIDDEN_SERVICE_FLAG = "HSDir";
 	private final DirectoryStore store;
 	private final Logger logger;
 	private final Map<HexDigest, KeyCertificate> certificates;
@@ -342,4 +346,36 @@ public class DirectoryImpl implements Directory {
 			return new ArrayList<Router>(routersByIdentity.values());
 		}
 	}
+
+	/**
+	 * Returns a list of 6 hidden service directory servers for retrieving 
+	 * service descriptors.
+	 */
+	public List<Router> getHiddenServiceDirectories(byte[] id) {
+		
+		List<RouterImpl> hsRouters = new ArrayList<RouterImpl>();
+		for (Router r : getHiddenServiceDirectories())
+			hsRouters.add((RouterImpl)r);
+		Collections.sort(hsRouters);
+		List<Router> responsibleHSRouters = new ArrayList<Router>();
+
+		for (RouterImpl r : hsRouters)
+			if (RouterImpl.compareRouterIDs(id, r.getIdentityHash().getRawBytes()) >= 0){
+				responsibleHSRouters.add(r);
+				if (responsibleHSRouters.size() == HiddenServiceDescriptor.NUMBER_OF_NON_CONSECUTIVE_REPLICA)
+					break;
+			}
+					
+		return responsibleHSRouters;
+	}
+	public List<Router> getHiddenServiceDirectories(){
+		final List<Router> hsRouters = new ArrayList<Router>();
+		for (Router router : routersByIdentity.values()){
+				if (((RouterImpl)router).hasFlag(HIDDEN_SERVICE_FLAG) && !((RouterImpl)router).hasFlag("hibernating"))
+					hsRouters.add(router);
+				
+		}
+		return hsRouters;
+	}
+	
 }
