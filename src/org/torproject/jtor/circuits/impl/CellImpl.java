@@ -6,7 +6,7 @@ import java.nio.ByteBuffer;
 
 import org.torproject.jtor.circuits.cells.Cell;
 
-class CellImpl implements Cell {
+public class CellImpl implements Cell {
 
 	static CellImpl createCell(int circuitId, int command) {
 		return new CellImpl(circuitId, command);
