@@ -32,14 +32,14 @@ public class HttpConnection {
 	private String responseMessage;
 	private Reader bodyReader;
 	
-	HttpConnection(String host, BufferedReader reader, BufferedWriter writer) {
+	public HttpConnection(String host, BufferedReader reader, BufferedWriter writer) {
 		this.host = host;
 		this.reader = reader;
 		this.writer = writer;
 		this.headers = new HashMap<String, String>();
 	}
 
-	void sendGetRequest(String request) {
+	public void sendGetRequest(String request) {
 		final StringBuilder sb = new StringBuilder();
 		sb.append("GET ");
 		sb.append(request);
@@ -57,7 +57,7 @@ public class HttpConnection {
 			throw new TorException("IO exception sending GET request", e);
 		}
 	}
-	void sendPostRequest(String request, byte[] data){
+	public void sendPostRequest(String request, byte[] data){
 		final StringBuilder sb = new StringBuilder();
 		sb.append("POST ");
 		sb.append(request);
@@ -67,30 +67,31 @@ public class HttpConnection {
 			
 		}
 		sb.append("\r\n");
-		
+		sb.append(new String(data));
 		try {
 			writer.write(sb.toString());
-			writer.write(new String(data));
 			writer.flush();
 		} catch (IOException e) {
 			throw new TorException("IO exception sending POST request", e);
 		}
 	}
 	
-	void readResponse() {
+	public void readResponse() {
 		readStatusLine();
+		if (responseCode==404)
+			return;
 		readHeaders();
 		readBody();
 	}
 	
-	int getStatusCode() {
+	public int getStatusCode() {
 		return responseCode;
 	}
 	
-	String getStatusMessage() {
+	public String getStatusMessage() {
 		return responseMessage;
 	}
-	Reader getBodyReader() {
+	public Reader getBodyReader() {
 		return bodyReader;
 	}
 	
