@@ -10,7 +10,7 @@ import org.torproject.jtor.directory.Router;
 import org.torproject.jtor.directory.RouterDescriptor;
 import org.torproject.jtor.directory.RouterStatus;
 
-public class RouterImpl implements Router {
+public class RouterImpl implements Router, Comparable<RouterImpl> {
 	static RouterImpl createFromRouterStatus(RouterStatus status) {
 		return new RouterImpl(status);
 	}
@@ -156,5 +156,37 @@ public class RouterImpl implements Router {
 
 	public boolean exitPolicyAccepts(int port) {
 		return exitPolicyAccepts(null, port);
+	}
+	public int compareTo(RouterImpl router){
+		byte[] data = this.getIdentityHash().getRawBytes(), odata = router.getIdentityHash().getRawBytes();
+		return RouterImpl.compareRouterIDs(data, odata);
+		
+	}
+	public static int compareRouterIDs(byte[] data, byte[] odata){
+		int len = data.length;
+		int lenb = odata.length;
+
+		for (int i = 0; ; i++) {
+		    int a = 0, b = 0;
+
+		    if (i < len) {
+			a = ((int) data[i]) & 0xff;
+		    } else if (i >= lenb) {
+			return 0;
+		    }
+
+		    if (i < lenb) {
+			b = ((int) odata[i]) & 0xff;
+		    }
+
+		    if (a > b) {
+			return 1;
+		    }
+
+		    if (b > a) {
+			return -1;
+		    }
+		}
+
 	}
 }

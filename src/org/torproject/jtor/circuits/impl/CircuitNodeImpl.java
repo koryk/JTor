@@ -12,7 +12,7 @@ import org.torproject.jtor.crypto.TorMessageDigest;
 import org.torproject.jtor.data.HexDigest;
 import org.torproject.jtor.directory.Router;
 
-class CircuitNodeImpl implements CircuitNode {
+public class CircuitNodeImpl implements CircuitNode {
 	static CircuitNodeImpl createForRouter(Router router) {
 		return new CircuitNodeImpl(router);
 	}
@@ -54,7 +54,9 @@ class CircuitNodeImpl implements CircuitNode {
 		if(!cryptoState.verifyPacketDigest(packetDigest))
 			throw new TorException("Digest verification failed!");
 	}
-
+	public TorKeyAgreement getContext(){
+		return dhContext;
+	}
 	public CircuitNodeImpl getPreviousNode() {
 		return previousNode;
 	}
