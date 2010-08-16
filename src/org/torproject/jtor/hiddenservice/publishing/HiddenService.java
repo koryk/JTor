@@ -4,24 +4,46 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.io.StringWriter;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.security.interfaces.RSAKey;
 import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Random;
 import java.util.Scanner;
 
+import org.bouncycastle.crypto.AsymmetricBlockCipher;
+import org.bouncycastle.crypto.encodings.PKCS1Encoding;
+import org.bouncycastle.crypto.engines.RSABlindedEngine;
+import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.torproject.jtor.TorException;
+import org.torproject.jtor.circuits.Circuit;
+import org.torproject.jtor.circuits.impl.CircuitImpl;
+import org.torproject.jtor.circuits.impl.CircuitNodeImpl;
 import org.torproject.jtor.crypto.TorPrivateKey;
 import org.torproject.jtor.crypto.TorPublicKey;
+import org.torproject.jtor.crypto.TorRandom;
+import org.torproject.jtor.data.HexDigest;
 import org.torproject.jtor.data.exitpolicy.PortRange;
 import org.torproject.jtor.directory.Directory;
 import org.torproject.jtor.directory.DirectoryServer;
 import org.torproject.jtor.directory.Router;
-import org.torproject.jtor.hiddenservice.ServiceDescriptor;
+import org.torproject.jtor.directory.impl.DirectoryImpl;
+import org.torproject.jtor.hiddenservice.HiddenServiceCell;
+import org.torproject.jtor.hiddenservice.HiddenServiceCellImpl;
+import org.torproject.jtor.hiddenservice.HiddenServiceDescriptor;
+import org.torproject.jtor.hiddenservice.RendezvousPoint;
+import org.torproject.jtor.logging.Logger;
+
+import com.sun.corba.se.impl.ior.ByteBuffer;
 
 // TODO: Auto-generated Javadoc
 /**
@@ -33,7 +55,7 @@ public class HiddenService {
 	private ArrayList<Router> introductionPoints = new ArrayList<Router>();
 	
 	/** The hidden service descriptor. */
-	private ServiceDescriptor hiddenServiceDescriptor;
+	private HiddenServiceDescriptor hiddenServiceDescriptor;
 	
 	/** The private key. */
 	private TorPrivateKey privateKey;
@@ -52,15 +74,20 @@ public class HiddenService {
 	
 	private Directory directory;
 	
-	public HiddenService(String serviceName, PortRange servicePorts, TorPrivateKey key){
-		
-	}
-	public HiddenService(PortRange servicePorts, TorPrivateKey key){
-		
-	}
-	public HiddenService(TorPrivateKey key){
+	private Logger logger;
+	
+	public HiddenService(String serviceName, PortRange servicePorts, TorPrivateKey key, Logger logger){
+		this.serviceName = serviceName;
+		this.servicePorts = servicePorts;
 		this.privateKey = key;
+		this.logger = logger;
 		generateServiceDescriptor();
+	}	
+	public HiddenService(TorPrivateKey key, Logger logger){
+		this.privateKey = key;
+		this.logger = logger;
+		generateServiceDescriptor();
+		//fetch config information
 	}
 	
 	/**
@@ -71,12 +98,116 @@ public class HiddenService {
 	 * @param servicePorts
 	 *            the service's ports
 	 */
-	public HiddenService(String serviceName, PortRange servicePorts, Directory directory) {
+	public HiddenService(String serviceName, PortRange servicePorts, Directory directory, Logger logger) {
 		this.serviceName = serviceName;
 		this.servicePorts = servicePorts;
 		this.directory = directory;
+		this.logger = logger;
 		generateKeyPair();
 		generateServiceDescriptor();
+	}
+	
+	/*
+	 * RELAY_COMMAND_ESTABLISH_INTRO cell as defined in 1.2 of rend-spec
+	 * 
+	 */
+	public void sendEstablishIntroCell(CircuitNodeImpl circuitNode, CircuitImpl circ, TorPublicKey keyForIntro){
+		HiddenServiceCell cell = HiddenServiceCellImpl.createCell(HiddenServiceCell.RELAY_COMMAND_ESTABLISH_INTRO, circ.getCircuitId());
+		cell.putInt(128);
+		cell.putByteArray(keyForIntro.toASN1Raw());
+		byte[] dh = circuitNode.getContext().getPublicValue().toByteArray();
+		byte[] introbytes = "INTRODUCE".getBytes(); 
+		byte[] hsbytes = new byte[dh.length + introbytes.length];
+		System.arraycopy(hsbytes, 0, dh, 0, dh.length);
+		System.arraycopy(hsbytes, dh.length, introbytes, 0, introbytes.length);
+		cell.putByteArray(HexDigest.createDigestForData(hsbytes).getRawBytes());
+		byte[] allbytes = cell.getCellBytes();
+		HexDigest.createDigestForData(allbytes);
+		cell.putByteArray(encrypt(allbytes,keyForIntro.getRSAPublicKey()));
+		circ.sendCell(cell);
+	}
+	//v1
+	public void sendRelayIntroduce1V(CircuitNodeImpl circuitNode, CircuitImpl circ, TorPublicKey hsKey, int authType, byte[] authData, RendezvousPoint rend){
+		HiddenServiceCell cell = HiddenServiceCellImpl.createCell(HiddenServiceCell.RELAY_COMMAND_INTRODUCE1V, circ.getCircuitId());
+		cell.putInt(1);
+		byte[] keyID = new byte[20];
+		System.arraycopy(keyID, 0, hsKey.getFingerprint().getRawBytes(), 0, keyID.length);
+		cell.putByteArray(keyID);
+		cell.putByte(authType);
+		if (authType != 0){
+			cell.putInt(authData.length);
+			cell.putByteArray(authData);
+		}
+		byte[] cellData = getCommandIntroduce2(circuitNode, circ, hsKey, authType, authData, rend);
+		cell.putByteArray(encrypt(cellData,hsKey.getRSAPublicKey()));
+	}
+	//v3 protocol
+	public void sendRelayIntroduce1(CircuitNodeImpl circuitNode, CircuitImpl circ, TorPublicKey hsKey, int authType, byte[] authData, RendezvousPoint rend){
+		HiddenServiceCell cell = HiddenServiceCellImpl.createCell(HiddenServiceCell.RELAY_COMMAND_INTRODUCE1, circ.getCircuitId());
+		byte[] keyID = new byte[20];
+		System.arraycopy(keyID, 0, hsKey.getFingerprint().getRawBytes(), 0, keyID.length);
+		cell.putByteArray(keyID);
+		ByteBuffer dataBuffer = new ByteBuffer();			
+		dataBuffer.append(3);
+		dataBuffer.append(authType);
+		if (authType != 0){
+			dataBuffer.append(authData.length);
+			for (byte b : authData)
+				dataBuffer.append(b);					
+		}
+		long currentTime = (new Date()).getTime();
+		dataBuffer.append((int)((currentTime + (((int)keyID[0]) * 337.5)) / 86400));
+		dataBuffer.append(rend.getAddress().getAddressData());
+		dataBuffer.append(rend.getDirectoryPort());
+		for (byte b: rend.getIdentityHash().getRawBytes())
+			dataBuffer.append(b);
+		dataBuffer.append(128);
+		for (byte b : rend.getOnionKey().toASN1Raw())
+			dataBuffer.append(b);
+		for (byte b : rend.getRendezvousCookie())
+			dataBuffer.append(b);
+		for (byte b : circuitNode.getContext().getPublicKeyBytes())
+			dataBuffer.append(b);
+		cell.putByteArray(encrypt(dataBuffer.toArray(),privateKey.getRSAPrivateKey()));
+		circ.sendCell(cell);
+		}	
+	byte[] getCommandIntroduce2(CircuitNodeImpl circuitNode, CircuitImpl circ, TorPublicKey hsKey, int authType, byte[] authData, RendezvousPoint rend){
+		HiddenServiceCell cell = HiddenServiceCellImpl.createCell(HiddenServiceCell.RELAY_COMMAND_INTRODUCE2, circ.getCircuitId());
+		cell.putByte(3);
+		cell.putByte(authType);
+		cell.putByteArray(authData);
+		cell.putInt((int)(new Date()).getTime());
+		cell.putByteArray(rend.getAddress().getAddressDataBytes());
+		cell.putInt(rend.getDirectoryPort());
+		cell.putByteArray(rend.getOnionKey().toASN1Raw());
+		cell.putInt(128);
+		cell.putByteArray(rend.getRendKey().toASN1Raw());
+		cell.putByteArray(rend.getRendezvousCookie());
+		cell.putByteArray(circuitNode.getContext().getPublicValue().toByteArray());
+		return cell.getCellBytes();
+	}
+	public void sendEstablishRendezvousCell(CircuitNodeImpl circuitNode, CircuitImpl circ){
+		//generate rendezvous cookie
+		TorRandom rand = new TorRandom();
+		byte[] rendezvousCookie = new byte[20];
+		for (int i = 0; i < rendezvousCookie.length; i++)
+			rendezvousCookie[i] = (byte)rand.nextInt();
+		HiddenServiceCell cell = HiddenServiceCellImpl.createCell(HiddenServiceCell.RELAY_COMMAND_ESTABLISH_RENDEZVOUS, circ.getCircuitId());
+		cell.putByteArray(rendezvousCookie);
+		circ.sendCell(cell);
+	}
+	
+	
+	private byte[] encrypt(byte[] data, RSAKey key){
+		try{
+			AsymmetricBlockCipher cip = new PKCS1Encoding(new RSABlindedEngine());
+			cip.init(true, new RSAKeyParameters(key instanceof RSAPrivateKey, key.getModulus(), (key instanceof RSAPrivateKey? ((RSAPrivateKey)key).getPrivateExponent() : ((RSAPublicKey)key).getPublicExponent())));			
+			byte[] retbytes = cip.processBlock(data, 0, data.length);
+		    return retbytes;		    
+		} catch (Exception e){
+			logger.debug("Error in signing data " + e.getMessage());//error signing data
+		}		
+		return data;
 	}
 	/**
 	 * 
@@ -85,7 +216,7 @@ public class HiddenService {
 	 * 			will instantiate a hidden service from tor HS configuration.
 	 * @throws FileNotFoundException
 	 */
-	public static HiddenService createServiceFromDirectory(File hsDirectory) throws TorException{
+	public static HiddenService createServiceFromDirectory(File hsDirectory, Logger logger) throws TorException{
 		if (hsDirectory == null || !hsDirectory.isDirectory())
 			throw new TorException("Directory is null or is not a directory.");
 		else {
@@ -101,7 +232,7 @@ public class HiddenService {
 				fileScanner = new FileInputStream(hsDirectory = new File(hsDirectory.getParent()+"/hostname"));
 				fileData = new byte[(int)hsDirectory.length()];
 				fileScanner.read(fileData);
-				return new HiddenService(privateKey);				
+				return new HiddenService(privateKey, logger);				
 			}catch (IOException e){
 				throw new TorException(e);
 			}
@@ -168,7 +299,8 @@ public class HiddenService {
 	 * 
 	 * @return the hidden service descripter
 	 */
-	public ServiceDescriptor getHiddenServiceDescriptor() {
+	public HiddenServiceDescriptor getHiddenServiceDescriptor() {
+		hiddenServiceDescriptor.generateDescriptorString();
 		return hiddenServiceDescriptor;
 	}
 
@@ -187,42 +319,42 @@ public class HiddenService {
 	 */
 	public void generateServiceDescriptor() {
 		if (privateKey != null) {
-			hiddenServiceDescriptor = ServiceDescriptor.generateServiceDescriptor(privateKey);
+			hiddenServiceDescriptor = HiddenServiceDescriptor.generateServiceDescriptor(privateKey, logger);
 			hiddenServiceDescriptor.generateDescriptorID();
 		}
 	}
-	
+	public void writeDescriptorToFile(File f){
+		try{
+			FileOutputStream fos = new FileOutputStream(f);
+			hiddenServiceDescriptor.generateDescriptorString();
+			fos.write(hiddenServiceDescriptor.getDescriptorString().getBytes());
+			fos.flush();
+		}catch (Exception e){
+			
+		}
+	}
 	/**
 	 * Advertise descriptor.
 	 */
-	public void advertiseDescriptor() {	
-		
-		String descriptor = hiddenServiceDescriptor.getDescriptorString();
-		final String path = "/tor/rendezvous/publish";
-		ArrayList<DirectoryServer> authorities = new ArrayList<DirectoryServer>(directory.getDirectoryAuthorities());
-		
-		for (DirectoryServer server : authorities) {
-		
-	        // Create a socket to the host
-	        int port = 80;
-	        InetAddress addr = server.getAddress().toInetAddress();
-	        try {
-	        Socket socket = new Socket(addr, port);
-	    
-	        
-	        BufferedWriter wr = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF8"));
-	        wr.write("POST "+path+" HTTP/1.1\r\n");
-	        
-	        // Send data
-	        wr.write(descriptor);
-	        wr.flush();
-	        wr.close();
-	        } catch (Exception e) {
-	        	//log post error
-	        }
+	public boolean advertiseDescriptor(Directory directory) {	
+		this.directory = directory;
+		Random rand = new Random();
+		ArrayList<Router> allDirectories = new ArrayList<Router>(((DirectoryImpl)directory).getHiddenServiceDirectories(hiddenServiceDescriptor.getDescriptorID()));
+		Router currDirectory;
+		int initSize = allDirectories.size();
+		int replicas = 2;
+		for (int i=0; i < replicas; i++){
+			hiddenServiceDescriptor.setReplica(i);
+			hiddenServiceDescriptor.generateDescriptorString();
+			while (!allDirectories.isEmpty()){
+					logger.debug("Posting to directory " + (initSize - allDirectories.size()+1) + "/" + initSize);
+					currDirectory = allDirectories.remove(rand.nextInt(allDirectories.size()));
+					if (hiddenServiceDescriptor.postServiceDescriptor(currDirectory))
+						return true;				
+			}			
 		}
+		return false;
 	}
-	
 	/**
 	 * Adds the introduction point.
 	 * 
