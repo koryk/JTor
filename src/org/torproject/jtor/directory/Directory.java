@@ -34,6 +34,7 @@ public interface Directory {
 	List<Router> getRouterListByNames(List<String> names);
 	List<Router> getRoutersWithDownloadableDescriptors();
 	List<Router> getAllRouters();
+	List<Router> getHiddenServiceDirectories();
 	void markDescriptorInvalid(RouterDescriptor descriptor);
 
 }
