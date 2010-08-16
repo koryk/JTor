@@ -34,7 +34,7 @@ public class CircuitManagerImpl implements CircuitManager {
 	public CircuitManagerImpl(Directory directory, ConnectionManagerImpl connectionManager, LogManager logManager) {
 		this.connectionManager = connectionManager;
 		this.logger = logManager.getLogger("circuits");
-		this.logger.enableDebug();
+		//this.logger.enableDebug();
 		this.circuitCreationTask = new CircuitCreationTask(directory, this, logger);
 		this.activeCircuits = new HashSet<Circuit>();
 		this.pendingCircuits = new HashSet<Circuit>();

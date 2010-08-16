@@ -283,7 +283,13 @@ public class CircuitImpl implements Circuit {
 		cell.getCircuitNode().incrementSendWindow();
 	}
 
+	public OpenStreamResponse openDirectoryStream(Router directoryServer) {
+		return openExitStream(directoryServer.getAddress(), directoryServer.getDirectoryPort());
+	}
+
+	@Override
 	public OpenStreamResponse openDirectoryStream() {
+		// TODO Auto-generated method stub
 		return null;
 	}
 
