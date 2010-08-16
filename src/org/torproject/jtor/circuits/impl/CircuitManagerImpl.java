@@ -132,6 +132,12 @@ public class CircuitManagerImpl implements CircuitManager {
 		}
 	}
 	
+	List<Circuit> getPendingCircuits() {
+		synchronized(pendingCircuits) {
+			return new ArrayList<Circuit>(pendingCircuits);
+		}
+	}
+	
 	void streamRequestIsCompleted(StreamExitRequest request) {
 		synchronized(pendingExitStreams) {
 			pendingExitStreams.remove(request);

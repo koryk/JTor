@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.torproject.jtor.circuits.cells.RelayCell;
 import org.torproject.jtor.data.IPv4Address;
+import org.torproject.jtor.data.exitpolicy.ExitTarget;
 import org.torproject.jtor.directory.Router;
 
 /**
@@ -121,4 +122,23 @@ public interface Circuit {
 	 * @return The final 'hop' or node of this circuit.
 	 */
 	CircuitNode getFinalCircuitNode();
+
+	/**
+	 * Return true if the final node of this circuit is believed to be able to connect to
+	 * the specified <code>ExitTarget</code>.  Returns false if the target destination is
+	 * not permitted by the exit policy of the final node in this circuit or if the target
+	 * has been previously recorded to have failed through this circuit.
+	 * 
+	 * @param target The exit destination.
+	 * @return Return true if is likely that the final node of this circuit can connect to the specified exit target.
+	 */
+	boolean canHandleExitTo(ExitTarget target);
+	
+	/**
+	 * Records the specified <code>ExitTarget</code> as a failed connection so that {@link #canHandleExitTo(ExitTarget)} will
+	 * no longer return true for this exit destination.
+	 * 
+	 * @param target The <code>ExitTarget</code> to which a connection has failed through this circuit.
+	 */
+	public void recordFailedExitTarget(ExitTarget target);
 }

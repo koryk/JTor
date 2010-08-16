@@ -290,6 +290,7 @@ public class DocumentFieldParserImpl implements DocumentFieldParser {
 
 	public boolean verifySignedEntity(TorPublicKey publicKey, TorSignature signature) {
 		isProcessingSignedEntity = false;
+		logger.debug("digest parsed: " + new String(signatureDigest.getDigestBytes()));
 		return publicKey.verifySignature(signature, signatureDigest);
 	}
 
@@ -312,7 +313,7 @@ public class DocumentFieldParserImpl implements DocumentFieldParser {
 		if(!isProcessingSignedEntity)
 			return;
 		if(signatureIgnoreToken != null && line.startsWith(signatureIgnoreToken))
-			return;
+			return;		
 		signatureDigest.update(line + "\n");
 	}
 

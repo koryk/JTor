@@ -96,6 +96,8 @@ public class ConnectionImpl implements Connection {
 			throw new ConnectionConnectException(e.getMessage());
 		} catch (InterruptedException e) {
 			throw new ConnectionConnectException("Handshake interrupted");
+		} catch (TorException e){
+			throw new ConnectionConnectException(e.getMessage());
 		}
 		manager.addActiveConnection(this);
 		isConnected = true;

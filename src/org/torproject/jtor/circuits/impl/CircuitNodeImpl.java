@@ -12,7 +12,7 @@ import org.torproject.jtor.crypto.TorMessageDigest;
 import org.torproject.jtor.data.HexDigest;
 import org.torproject.jtor.directory.Router;
 
-class CircuitNodeImpl implements CircuitNode {
+public class CircuitNodeImpl implements CircuitNode {
 	static CircuitNodeImpl createForRouter(Router router) {
 		return new CircuitNodeImpl(router);
 	}
@@ -40,7 +40,9 @@ class CircuitNodeImpl implements CircuitNode {
 		packageWindow = CIRCWINDOW_START;
 		deliverWindow = CIRCWINDOW_START;
 	}
-
+	public TorKeyAgreement getContext(){
+		return dhContext;
+	}
 	public Router getRouter() {
 		return router;
 	}

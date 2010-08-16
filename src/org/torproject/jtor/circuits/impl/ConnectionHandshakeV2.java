@@ -80,6 +80,7 @@ public class ConnectionHandshakeV2 {
 		}
 
 		SSLSession session = socket.getSession();
+
 		session.invalidate();
 		hasRenegotiated = true;
 		try {
