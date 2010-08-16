@@ -14,10 +14,10 @@ import org.torproject.jtor.socks.SocksPortListener;
  * or client.
  */
 public class TorClient {
-	private final LogManager logManager;
+	public final LogManager logManager;
 	private final TorConfig config;
-	private final Directory directory;
-	private final CircuitManager circuitManager;
+	public final Directory directory;
+	public final CircuitManager circuitManager;
 	private final SocksPortListener socksListener;
 	private final NetworkStatusManager networkStatusManager;
 
@@ -28,8 +28,7 @@ public class TorClient {
 		directory = Tor.createDirectory(logManager, config);
 		circuitManager = Tor.createCircuitManager(directory, logManager);
 		networkStatusManager = Tor.createNetworkStatusManager(directory, logManager);
-		socksListener = Tor.createSocksPortListener(logManager, circuitManager);
-		
+		socksListener = Tor.createSocksPortListener(logManager, circuitManager);		
 	}
 
 	/**
@@ -44,6 +43,6 @@ public class TorClient {
 
 	public static void main(String[] args) {
 		final TorClient client = new TorClient();
-		client.start();
+		client.start();		
 	}
 }

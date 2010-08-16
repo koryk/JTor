@@ -26,7 +26,7 @@ public class SocksPortListenerImpl implements SocksPortListener {
 	
 	public SocksPortListenerImpl(LogManager logManager, CircuitManager circuitManager) {
 		this.logger = logManager.getLogger("socks");
-		logger.enableDebug();
+		//logger.enableDebug();
 		this.circuitManager = circuitManager;
 		executor = Executors.newFixedThreadPool(25);
 	}

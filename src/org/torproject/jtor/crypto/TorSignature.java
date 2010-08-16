@@ -20,7 +20,7 @@ public class TorSignature {
 		final String header = nextLine(reader);
 		if(!(SIGNATURE_BEGIN.equals(header) || ID_SIGNATURE_BEGIN.equals(header)))
 			throw new TorParsingException("Did not find expected signature BEGIN header");
-		return new TorSignature(Base64.decode(parseBase64Data(reader)));	
+		return new TorSignature(Base64.decode(parseBase64Data(reader)));
 	}
 	static private String parseBase64Data(BufferedReader reader) {
 		final StringBuilder base64Data = new StringBuilder();
