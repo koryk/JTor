@@ -14,7 +14,7 @@ public class StreamExitRequest implements ExitTarget {
 	private OpenStreamResponse response;
 	private boolean isReserved;
 
-	StreamExitRequest(CircuitManagerImpl circuitManager, IPv4Address address, int port) {
+	public StreamExitRequest(CircuitManagerImpl circuitManager, IPv4Address address, int port) {
 		this.circuitManager = circuitManager;
 		isAddress = true;
 		this.address = address;

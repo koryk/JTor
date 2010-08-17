@@ -17,13 +17,13 @@ public class NodeChooser {
 	private final Directory directory;
 	private final TorRandom random;
 
-	NodeChooser(CircuitManagerImpl circuitManager, Directory directory) {
+	public NodeChooser(CircuitManagerImpl circuitManager, Directory directory) {
 		this.circuitManager = circuitManager;
 		this.directory = directory;
 		this.random = new TorRandom();
 	}
 
-	Router chooseEntryNode(NodeChoiceConstraints ncc) {
+	public Router chooseEntryNode(NodeChoiceConstraints ncc) {
 		ncc.setNeedGuard(true);
 		ncc.setWeightAsGuard(true);
 		final List<Router> filteredRouters = filterForRouterList(
@@ -32,7 +32,7 @@ public class NodeChooser {
 		return chooseRandomRouterByBandwidth(filteredRouters, ncc);
 	}
 
-	Router chooseMiddleNode(NodeChoiceConstraints ncc) {
+	public Router chooseMiddleNode(NodeChoiceConstraints ncc) {
 		final List<Router> filteredRouters = filterForRouterList(directory.getAllRouters(), ncc.getExcludedRouters());
 		return chooseRandomRouterByBandwidth(filteredRouters, ncc);
 	}
@@ -56,7 +56,7 @@ public class NodeChooser {
 		return routerSet;
 	}
 
-	Router chooseExitNodeForTarget(ExitTarget target, NodeChoiceConstraints ncc) {
+	public Router chooseExitNodeForTarget(ExitTarget target, NodeChoiceConstraints ncc) {
 		if(target.isAddressTarget())
 			return chooseExitNodeForAddress(target.getAddress(), target.getPort(), ncc);
 		else

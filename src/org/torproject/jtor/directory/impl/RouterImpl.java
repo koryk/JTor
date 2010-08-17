@@ -29,6 +29,9 @@ public class RouterImpl implements Router, Comparable<RouterImpl> {
 			throw new TorException("Identity hash does not match status update");
 		this.status = status;
 	}
+	public RouterStatus getStatus() {
+		return status;
+	}
 
 	void updateDescriptor(RouterDescriptor descriptor) {
 		this.descriptor = descriptor;

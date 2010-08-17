@@ -15,7 +15,10 @@ import java.security.interfaces.RSAKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
@@ -26,17 +29,30 @@ import org.bouncycastle.crypto.engines.RSABlindedEngine;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.torproject.jtor.TorException;
 import org.torproject.jtor.circuits.Circuit;
+import org.torproject.jtor.circuits.CircuitBuildHandler;
+import org.torproject.jtor.circuits.CircuitManager;
+import org.torproject.jtor.circuits.CircuitNode;
+import org.torproject.jtor.circuits.Connection;
+import org.torproject.jtor.circuits.OpenStreamResponse;
+import org.torproject.jtor.circuits.impl.CellImpl;
 import org.torproject.jtor.circuits.impl.CircuitImpl;
+import org.torproject.jtor.circuits.impl.CircuitManagerImpl;
 import org.torproject.jtor.circuits.impl.CircuitNodeImpl;
+import org.torproject.jtor.circuits.impl.NodeChoiceConstraints;
+import org.torproject.jtor.circuits.impl.NodeChooser;
+import org.torproject.jtor.circuits.impl.OpenStreamResponseImpl;
+import org.torproject.jtor.circuits.impl.StreamExitRequest;
 import org.torproject.jtor.crypto.TorPrivateKey;
 import org.torproject.jtor.crypto.TorPublicKey;
 import org.torproject.jtor.crypto.TorRandom;
 import org.torproject.jtor.data.HexDigest;
+import org.torproject.jtor.data.IPv4Address;
 import org.torproject.jtor.data.exitpolicy.PortRange;
 import org.torproject.jtor.directory.Directory;
 import org.torproject.jtor.directory.DirectoryServer;
 import org.torproject.jtor.directory.Router;
 import org.torproject.jtor.directory.impl.DirectoryImpl;
+import org.torproject.jtor.directory.impl.RouterImpl;
 import org.torproject.jtor.hiddenservice.HiddenServiceCell;
 import org.torproject.jtor.hiddenservice.HiddenServiceCellImpl;
 import org.torproject.jtor.hiddenservice.HiddenServiceDescriptor;
@@ -65,6 +81,9 @@ public class HiddenService {
 	}
 	/** The service name. */
 	private String serviceName;
+	
+	private Hashtable<Integer, IntroductionPoint> introCircuits = new Hashtable<Integer, IntroductionPoint>();
+; 
 	
 	/** The service ports. */
 	private PortRange servicePorts;
@@ -122,8 +141,9 @@ public class HiddenService {
 		System.arraycopy(hsbytes, dh.length, introbytes, 0, introbytes.length);
 		cell.putByteArray(HexDigest.createDigestForData(hsbytes).getRawBytes());
 		byte[] allbytes = cell.getCellBytes();
-		HexDigest.createDigestForData(allbytes);
+		allbytes = HexDigest.createDigestForData(allbytes).getRawBytes();
 		cell.putByteArray(encrypt(allbytes,keyForIntro.getRSAPublicKey()));
+		CellImpl newCell = CellImpl.createVarCell(circ.getCircuitId(), HiddenServiceCell.RELAY_COMMAND_ESTABLISH_INTRO, cell.getCellBytes().length);
 		circ.sendCell(cell);
 	}
 	//v1
@@ -290,8 +310,8 @@ public class HiddenService {
 	 * 
 	 * @return the introduction points
 	 */
-	public ArrayList<Router> getIntroductionPoints() {
-		return introductionPoints;
+	public List<IntroductionPoint> getIntroductionPoints() {
+		return new ArrayList<IntroductionPoint>(introCircuits.values());
 	}
 
 	/**
@@ -339,13 +359,15 @@ public class HiddenService {
 	public boolean advertiseDescriptor(Directory directory) {	
 		this.directory = directory;
 		Random rand = new Random();
-		ArrayList<Router> allDirectories = new ArrayList<Router>(((DirectoryImpl)directory).getHiddenServiceDirectories(hiddenServiceDescriptor.getDescriptorID()));
+		ArrayList<Router> allDirectories;
 		Router currDirectory;
-		int initSize = allDirectories.size();
+
 		int replicas = 2;
 		for (int i=0; i < replicas; i++){
 			hiddenServiceDescriptor.setReplica(i);
 			hiddenServiceDescriptor.generateDescriptorString();
+			allDirectories = new ArrayList<Router>(((DirectoryImpl)directory).getHiddenServiceDirectories(hiddenServiceDescriptor.getDescriptorID()));
+			int initSize = allDirectories.size();
 			while (!allDirectories.isEmpty()){
 					logger.debug("Posting to directory " + (initSize - allDirectories.size()+1) + "/" + initSize);
 					currDirectory = allDirectories.remove(rand.nextInt(allDirectories.size()));
@@ -355,6 +377,65 @@ public class HiddenService {
 		}
 		return false;
 	}
+
+	public void initializeIntroPoints(Directory directory, CircuitManagerImpl cm){
+		NodeChooser nodeChooser = new NodeChooser(cm, directory);
+		List<Router> routers = directory.getAllRouters();
+		HiddenServiceCircuitBuildHandler hiddenServiceBuildHandler = new HiddenServiceCircuitBuildHandler();
+		TorRandom rand = new TorRandom();
+		int numIntroPoints = rand.nextInt(4)+3;
+		for (int i = 0; i < numIntroPoints && !routers.isEmpty(); i++){
+			Router router = routers.remove(rand.nextInt(routers.size()));
+			IntroductionPoint point = IntroductionPoint.createIntroPoint((RouterImpl)router);
+			//need to be able to create HS circuits here, not used by any other connections
+			try{
+				List<Router> circrouters = new ArrayList<Router>();
+				NodeChoiceConstraints ncc = new NodeChoiceConstraints();
+				circrouters.add(nodeChooser.chooseEntryNode(ncc));
+				circrouters.add(nodeChooser.chooseMiddleNode(ncc));
+				circrouters.add(nodeChooser.chooseExitNodeForTarget(new StreamExitRequest(cm, point.getAddress(), point.getDirectoryPort()), ncc));
+				Circuit introCircuit = cm.createNewCircuit();
+				introCircuit.openCircuit(circrouters, hiddenServiceBuildHandler);
+				introCircuits.put(introCircuit.getCircuitId(), point);
+				sendEstablishIntroCell(((CircuitNodeImpl)introCircuit.getFinalCircuitNode()), ((CircuitImpl)introCircuit), point.getPublicKey());
+				logger.debug("Sent intro cell to " + point.getAddress().toString());
+				}catch (Exception e){
+				throw new TorException(e);
+			}
+		}
+			
+	}
+	private class HiddenServiceCircuitBuildHandler implements CircuitBuildHandler{
+
+		@Override
+		public void circuitBuildCompleted(Circuit circuit) {			
+		}
+
+		@Override
+		public void circuitBuildFailed(String reason) {
+			// TODO Auto-generated method stub
+			logger.debug("intro circuit failed");
+		}
+
+		@Override
+		public void connectionCompleted(Connection connection) {
+			// TODO Auto-generated method stub
+		}
+
+		@Override
+		public void connectionFailed(String reason) {
+			// TODO Auto-generated method stub
+			logger.debug("intro circuit failed");			
+		}
+
+		@Override
+		public void nodeAdded(CircuitNode node) {
+			// TODO Auto-generated method stub
+			
+		}
+		
+	}
+	
 	/**
 	 * Adds the introduction point.
 	 * 

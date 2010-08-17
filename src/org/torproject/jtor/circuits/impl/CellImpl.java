@@ -12,7 +12,7 @@ public class CellImpl implements Cell {
 		return new CellImpl(circuitId, command);
 	}
 
-	static CellImpl createVarCell(int circuitId, int command, int payloadLength) {
+	public static CellImpl createVarCell(int circuitId, int command, int payloadLength) {
 		return new CellImpl(circuitId, command, payloadLength);
 	}
 

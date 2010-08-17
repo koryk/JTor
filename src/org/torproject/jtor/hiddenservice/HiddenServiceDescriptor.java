@@ -313,6 +313,12 @@ public class HiddenServiceDescriptor {
 		ret.setPermanentKey(publicKey);
 		return ret;
 	}
+	public static HiddenServiceDescriptor generateServiceDescriptor(TorPublicKey key, Logger logger){
+		byte[] permanentID = new byte[PERMANENT_ID_SIZE];
+		System.arraycopy(key.getFingerprint().getRawBytes(), 0, permanentID, 0, PERMANENT_ID_SIZE);
+		HiddenServiceDescriptor hsd = new HiddenServiceDescriptor(permanentID, logger);
+		return hsd;
+	}
 	public TorPublicKey getPermanentKey() {
 		return permanentKey;
 	}
@@ -327,13 +333,11 @@ public class HiddenServiceDescriptor {
 	 */
 	public void generateDescriptorString() throws TorException{
 		generateDescriptorID();	
-		logger.debug("" + permanentKey.getFingerprint());
 		descriptorString = "rendezvous-service-descriptor " + formatDescriptorID() + "\n";
 		descriptorString += "version " + VERSION + "\n";
 		descriptorString += "permanent-key \n" + permanentKey.toPEMFormat() + "\n";
 		descriptorString += "secret-id-part " + formatSecretID() + "\n";
 		descriptorString += "publication-time " + getPublicationTime() + "\n";
-		//supported versions - not sure about this yet
 		descriptorString += "protocol-versions V2 \n";
 		descriptorString += "introduction-points\n";
 		descriptorString += "-----BEGIN MESSAGE-----\n";		

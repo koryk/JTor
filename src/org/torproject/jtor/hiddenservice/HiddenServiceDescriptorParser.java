@@ -4,6 +4,7 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Scanner;
 
+import org.torproject.jtor.TorException;
 import org.torproject.jtor.crypto.TorMessageDigest;
 import org.torproject.jtor.crypto.TorPublicKey;
 import org.torproject.jtor.crypto.TorSignature;
@@ -48,11 +49,16 @@ public class HiddenServiceDescriptorParser {
 			}
 			
 		});
-		parser.startSignedEntity();
-		parser.processDocument();
+
 	}
 	public HiddenServiceDescriptor parseDescriptor(){		
-		return null;
+		parser.startSignedEntity();
+		parser.processDocument();
+		if (pk == null || descriptorID == null || secretID == null || protocolString == null || publicationTime == null)		
+			throw new TorException ("error parsing v2 hidden service descriptor");
+		HiddenServiceDescriptor descriptor = HiddenServiceDescriptor.generateServiceDescriptor(pk, log);
+		descriptor.setPermanentKey(pk);
+		return descriptor;
 	}
 	public boolean isVerified(){
 		return verified;
@@ -85,7 +91,7 @@ public class HiddenServiceDescriptorParser {
 			verified = parser.verifySignedEntity(pk, parser.parseSignature());
 		while (parser.argumentsRemaining() > 0)
 			parser.parseString();
-		log.debug("line " + line);
+		//log.debug("line " + line);
 	}
 	private void parseIntroPoints(DocumentFieldParser parser){
 		

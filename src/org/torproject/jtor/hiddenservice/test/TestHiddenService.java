@@ -5,15 +5,19 @@ import static org.junit.Assert.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.StringBufferInputStream;
+import java.util.Arrays;
 
 import org.torproject.jtor.TorClient;
+import org.torproject.jtor.TorException;
 import org.torproject.jtor.circuits.impl.CircuitManagerImpl;
 import org.torproject.jtor.crypto.TorPrivateKey;
 import org.torproject.jtor.data.exitpolicy.PortRange;
 import org.torproject.jtor.directory.Directory;
 import org.torproject.jtor.directory.DirectoryServer;
 import org.torproject.jtor.directory.Router;
+import org.torproject.jtor.directory.impl.DirectoryImpl;
 import org.torproject.jtor.hiddenservice.HiddenServiceDescriptor;
 import org.torproject.jtor.hiddenservice.HiddenServiceDescriptorParser;
 import org.torproject.jtor.hiddenservice.publishing.HiddenService;
@@ -35,6 +39,11 @@ public class TestHiddenService {
 		logger.debug("Hidden services test started");
 		assertTrue(logger != null);		
 	}
+	@Test public void testIntroductionPointEstablishment(){
+		HiddenService hiddenService = new HiddenService("JTor test service", PortRange.createFromString("80-80"), TorPrivateKey.createFromPEMBuffer(privateKey), logger);
+		hiddenService.initializeIntroPoints((DirectoryImpl)tc.directory, (CircuitManagerImpl)tc.circuitManager);
+		assertTrue(hiddenService.getIntroductionPoints().size()>0);
+	}
 	/**
 	 * Tests the instantiation from configuration directory created by Tor
 	 * and if the key is rendered correctly.
@@ -50,11 +59,21 @@ public class TestHiddenService {
 	}
 	@Test public void testV2Parser(){
 		HiddenService hiddenService = new HiddenService("JTor test service", PortRange.createFromString("80-80"), TorPrivateKey.createFromPEMBuffer(privateKey), logger);
-		//HiddenServiceDescriptor hsd = HiddenServiceDescriptor.fetchServiceDescriptor(hostname, tc.directory, tc.circuitManager, logger);
-		//hiddenService.writeDescriptorToFile(new File("./test/test_descriptor"));
 		HiddenServiceDescriptorParser hsp = new HiddenServiceDescriptorParser(new ByteArrayInputStream(hiddenService.getHiddenServiceDescriptor().getDescriptorString().getBytes()), logger);
-		assertTrue(hsp.isVerified());         
+		HiddenServiceDescriptor hs = hsp.parseDescriptor();
+		assertTrue(Arrays.equals(hs.getPermanentID(),hiddenService.getHiddenServiceDescriptor().getPermanentID()));         
 	}
+	@Test public void testV2ParserSignature(){
+		try{
+		HiddenServiceDescriptorParser hsp = new HiddenServiceDescriptorParser(new FileInputStream(new File("./test/test_descriptor")), logger);
+		
+		HiddenServiceDescriptor hs = hsp.parseDescriptor();
+		assertTrue(hsp.isVerified());         
+		}catch (Exception e){
+			throw new TorException(e);
+		}
+	}
+	
 	@Test public void testTimePeriodGeneration(){
 		float sampleTime = 1188241957;
 		float descriptorByte = 143;

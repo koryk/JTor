@@ -1,4 +1,4 @@
-rendezvous-service-descriptor 6f2v6dkbde2gggc724tygb3ehvlumfp3
+rendezvous-service-descriptor woyrssynaavs7ww5345iiif7szogjszd
 version 2
 permanent-key 
 -----BEGIN PUBLIC KEY-----
@@ -8,8 +8,8 @@ bXFEQyceWaqRgrPjbzb/+wXTQCSHWZxg8GhkB3aioPcyBpNDPG8kO3Hz52CDwxTX
 K0evILRaxoG3lPaUYQIDAQAB
 -----END PUBLIC KEY-----
 
-secret-id-part pmqpgqh4trq7k7hlrp6po53rrmx2o6xl
-publication-time 2010-08-16 02:31:35
+secret-id-part ueeqtqwnzl223n7gwcjkj6v2kwfwfpmw
+publication-time 2010-08-16 17:03:31
 protocol-versions V2 
 introduction-points
 -----BEGIN MESSAGE-----
@@ -17,7 +17,7 @@ introduction-points
 -----END MESSAGE-----
 signature 
 -----BEGIN SIGNATURE-----
-bKqv2yvwM7Ah4DsWkN1Ot/M2Plo4h78a8k6W6t6doc7dG+JB8BafzJ4pQitkl1H5qlppiTHN6BWE
-TGrZRn4RmHvH2zjuh6y7nu9gggPn35lTYIAaWgNA8j7M00xpRLEL5FP9np/kA7l2iQAyNIFRn1S2
-eQPEc8W8o71hluoTK/4=
+VDgP+2iFEwsn0yFNL7+jSiAmxZBUIGNvgNfNEipqEvVgrR0dXddRVzDfvTku1EqfgpBgKYE+IDSz
+A7DGhwss5yMpke1jwmuP47yscEfWVa1Bsbya+vDdxaK3bD3IBQ9fl5pKkyXgO3GyeKdXk4kGLbLP
+2tIW8u0lJ7sA0XRbJ+4=
 -----END SIGNATURE-----
